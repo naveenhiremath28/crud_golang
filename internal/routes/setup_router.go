@@ -10,4 +10,6 @@ func SetupRouter(app *fiber.App) {
 	v1 := api.Group("/v1")
 
 	v1.Get("/", service.ServerStatus)
+	v1.Get("/list", service.List)
+	v1.Post("/add", service.Add)
 }
