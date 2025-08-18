@@ -17,8 +17,12 @@ func ServerStatus(ctx *fiber.Ctx) error {
 
 func ListEmployees(ctx *fiber.Ctx) error {
 	var employees []models.Employees
-	database.DB.Find(&employees)
-	res := models.GetApiResponse("api.server.list.array", "OK", employees)
+	result := database.DB.Find(&employees)
+	if result.Error != nil {
+		res := models.GetApiResponse("api.server.list.error", "FAILED", result.Error.Error())
+		return ctx.Status(500).JSON(res)
+	}
+	res := models.GetApiResponse("api.server.list.employees", "OK", employees)
 	return ctx.JSON(res)
 }
 
@@ -31,10 +35,14 @@ func AddEmployee(ctx *fiber.Ctx) error {
 	}
 	var emp models.Employees
 	if err := json.Unmarshal(request.Request, &emp); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return ctx.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
-	database.DB.Create(&emp)
-	res := models.GetApiResponse("api.server.status", "OK", "Inserted Record Successfully")
+	result := database.DB.Create(&emp)
+	if result.Error != nil {
+		res := models.GetApiResponse("api.add", "ERROR", result.Error.Error())
+		return ctx.Status(500).JSON(res)
+	}
+	res := models.GetApiResponse("api.add.employee", "OK", "Inserted Record Successfully")
 	return ctx.JSON(res)
 }
 
@@ -53,8 +61,11 @@ func DeleteEmployee(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var emp models.Employees
 	result := database.DB.Delete(&emp, id)
-	if result.Error != nil {
+	if result.RowsAffected == 0 {
 		return ctx.Status(404).JSON(fiber.Map{"error": "User not found"})
+	} 
+	if result.Error != nil {
+		return ctx.Status(500).JSON(fiber.Map{"error": "Unable to delete user"})
 	}
 	res := models.GetApiResponse("api.get.employee", "OK","Record Deleted Successfully")
 	return ctx.JSON(res)
