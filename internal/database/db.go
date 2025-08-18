@@ -3,8 +3,6 @@ package database
 import (
 	"log"
 	"fmt"
-	// "database/sql"
-    // _ "github.com/lib/pq"
 	"os"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -34,16 +32,11 @@ func Connect() error {
 		getEnv("DB_NAME", "mydb"),
 	)
 
-	// DB, err = sql.Open("postgres", connStr)
 	DB, err = gorm.Open(postgres.Open(connStr), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-	// if err = DB.Ping(); err != nil {
-	// 	log.Fatal(err)
-	// 	return err
-	// }
 	fmt.Println("Database Connected Successfully..!")
 	return nil
 }

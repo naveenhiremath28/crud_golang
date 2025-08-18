@@ -3,12 +3,13 @@ package models
 import (
 	"time"
 	"github.com/google/uuid"
+	"encoding/json"
 )
 
 type APIResponse struct {
     ID           string      `json:"id"`
     Version      string      `json:"ver"`
-    Timestamp    time.Time   `json:"ts"`
+    Timestamp    string	     `json:"ts"`
     Params       Params      `json:"params"`
     ResponseCode string      `json:"responseCode"`
     Result       interface{} `json:"result"`
@@ -21,9 +22,9 @@ type Params struct {
 type ApiRequest struct {
 	ID           string      `json:"id"`
     Version      string      `json:"ver"`
-    Timestamp    time.Time   `json:"ts"`
+    Timestamp    string   	 `json:"ts"`
 	Params       Params      `json:"params"`
-	Request interface{} `json:request`
+	Request   json.RawMessage `json:"request"`
 }
 
 type Employees struct {
@@ -38,7 +39,7 @@ func GetApiResponse(id string, response_code string, result any) APIResponse {
 	return APIResponse{
 		ID: id,
 		Version: "v1",
-		Timestamp: time.Now(),
+		Timestamp : time.Now().Format(time.RFC3339),
 		Params: Params{
 			MsgID: uuid.New().String(),
 		},
