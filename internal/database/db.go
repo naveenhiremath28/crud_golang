@@ -1,35 +1,25 @@
 package database
 
 import (
-	"log"
 	"fmt"
-	"os"
+	"log"
+	"practise/go_fiber/internal/config"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"github.com/joho/godotenv"
 )
 
 var DB *gorm.DB
 
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
-}
-
-func Connect() error {
+func Connect(cfg *config.Config) error {
 	var err error
-	if err := godotenv.Load(); err != nil {
-        log.Println("No .env file found, using system environment variables")
-    }
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		getEnv("DB_HOST", "localhost"),
-		getEnv("DB_PORT", "5432"),
-		getEnv("DB_USER", "postgres"),
-		getEnv("DB_PASSWORD", "password"),
-		getEnv("DB_NAME", "mydb"),
+		cfg.DBHost,
+		cfg.DBPort,
+		cfg.DBUser,
+		cfg.DBPassword,
+		cfg.DBName,
 	)
 
 	DB, err = gorm.Open(postgres.Open(connStr), &gorm.Config{})
