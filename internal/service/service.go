@@ -1,10 +1,11 @@
 package service
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"practise/go_fiber/internal/database"
 	"practise/go_fiber/internal/models"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -49,33 +50,32 @@ func AddEmployee(ctx *fiber.Ctx) error {
 func GetEmployee(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var emp models.Employees
-	result := database.DB.First(&emp, id)
+	result := database.DB.First(&emp, "id = ?", id)
 	if result.Error != nil {
 		return ctx.Status(404).JSON(fiber.Map{"error": "User not found"})
 	}
-	res := models.GetApiResponse("api.get.employee", "OK",emp)
+	res := models.GetApiResponse("api.get.employee", "OK", emp)
 	return ctx.JSON(res)
 }
 
 func DeleteEmployee(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var emp models.Employees
-	result := database.DB.Delete(&emp, id)
+	result := database.DB.Delete(&emp, "id = ?", id)
 	if result.RowsAffected == 0 {
 		return ctx.Status(404).JSON(fiber.Map{"error": "User not found"})
-	} 
+	}
 	if result.Error != nil {
 		return ctx.Status(500).JSON(fiber.Map{"error": "Unable to delete user"})
 	}
-	res := models.GetApiResponse("api.get.employee", "OK","Record Deleted Successfully")
+	res := models.GetApiResponse("api.get.employee", "OK", "Record Deleted Successfully")
 	return ctx.JSON(res)
 }
-
 
 func UpdateEmployee(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var emp models.Employees
-	result := database.DB.First(&emp, id)
+	result := database.DB.First(&emp, "id = ?", id)
 	if result.Error != nil {
 		return ctx.Status(404).JSON(fiber.Map{"error": "User not found"})
 	}
@@ -94,6 +94,6 @@ func UpdateEmployee(ctx *fiber.Ctx) error {
 	emp.Email = employee.Email
 	emp.Salary = employee.Salary
 	database.DB.Save(&emp)
-	res := models.GetApiResponse("api.get.employee", "OK","Record Updated Successfully")
+	res := models.GetApiResponse("api.get.employee", "OK", "Record Updated Successfully")
 	return ctx.JSON(res)
 }
