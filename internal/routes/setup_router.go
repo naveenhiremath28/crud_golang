@@ -13,9 +13,9 @@ func SetupRouter(app *fiber.App, cfg *config.Config) {
 	v1 := api.Group("/v1", middlewares.KeycloakAuth(cfg.JWKSURL))
 
 	v1.Get("/", service.ServerStatus)
-	v1.Get("/listEmployees", service.ListEmployees)
-	v1.Post("/addEmployee", service.AddEmployee)
-	v1.Get("/getEmployee/:id", service.GetEmployee)
+	v1.Get("/listEmployees", middlewares.RoleMiddleware("user", "manager", "admin"), service.ListEmployees)
+	v1.Post("/addEmployee", middlewares.RoleMiddleware("admin"), service.AddEmployee)
+	v1.Get("/getEmployee/:id", middlewares.RoleMiddleware("admin", "manager"), service.GetEmployee)
 	v1.Patch("/updatedEmployee/:id", service.UpdateEmployee)
 	v1.Delete("/deleteEmployee/:id", service.DeleteEmployee)
 }
