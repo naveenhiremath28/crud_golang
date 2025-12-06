@@ -3,6 +3,8 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
 	"practise/go_fiber/internal/database"
 	"practise/go_fiber/internal/models"
 
@@ -96,4 +98,80 @@ func UpdateEmployee(ctx *fiber.Ctx) error {
 	database.DB.Save(&emp)
 	res := models.GetApiResponse("api.get.employee", "OK", "Record Updated Successfully")
 	return ctx.JSON(res)
+}
+
+func LoginHandler(c *fiber.Ctx) error {
+	var req models.LoginRequest[models.Login]
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid request body",
+		})
+	}
+
+	form := url.Values{}
+	form.Set("client_id", "employee-api")
+	form.Set("grant_type", "password")
+	form.Set("username", req.Request.Username)
+	form.Set("password", req.Request.Password)
+
+	resp, err := http.PostForm(
+		"http://localhost:8083/realms/employee_realm/protocol/openid-connect/token",
+		form,
+	)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to reach keycloak",
+		})
+	}
+	defer resp.Body.Close()
+
+	var data map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to parse keycloak response",
+		})
+	}
+
+	// You can wrap this with your GetApiResponse if you want later
+	return c.Status(resp.StatusCode).JSON(data)
+}
+
+func RefreshHandler(c *fiber.Ctx) error {
+	var req models.LoginRequest[models.Refresh]
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid request body",
+		})
+	}
+
+	if req.Request.RefreshToken == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "refresh_token is required",
+		})
+	}
+
+	form := url.Values{}
+	form.Set("client_id", "employee-api")
+	form.Set("grant_type", "refresh_token")
+	form.Set("refresh_token", req.Request.RefreshToken)
+
+	resp, err := http.PostForm(
+		"http://localhost:8083/realms/employee_realm/protocol/openid-connect/token",
+		form,
+	)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to reach keycloak",
+		})
+	}
+	defer resp.Body.Close()
+
+	var data map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to parse keycloak response",
+		})
+	}
+
+	return c.Status(resp.StatusCode).JSON(data)
 }

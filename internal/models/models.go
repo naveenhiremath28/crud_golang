@@ -37,6 +37,23 @@ type Employees struct {
 	Mobile    string  `gorm:"size:15;not null" json:"mobile"`
 }
 
+type Login struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type Refresh struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type LoginRequest[T any] struct {
+	ID        string `json:"id"`
+	Version   string `json:"ver"`
+	Timestamp string `json:"ts"`
+	Params    Params `json:"params"`
+	Request   T      `json:"request"`
+}
+
 func GetApiResponse(id string, response_code string, result any) APIResponse {
 	return APIResponse{
 		ID:        id,
