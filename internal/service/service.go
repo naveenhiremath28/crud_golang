@@ -5,22 +5,28 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"practise/go_fiber/internal/database"
 	"practise/go_fiber/internal/models"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
-var SampleArray = make([]interface{}, 0)
+type Service struct {
+	DB *gorm.DB
+}
 
-func ServerStatus(ctx *fiber.Ctx) error {
+func NewService(db *gorm.DB) *Service {
+	return &Service{DB: db}
+}
+
+func (s *Service) ServerStatus(ctx *fiber.Ctx) error {
 	res := models.GetApiResponse("api.server.status", "OK", "Server is Alive..!")
 	return ctx.JSON(res)
 }
 
-func ListEmployees(ctx *fiber.Ctx) error {
+func (s *Service) ListEmployees(ctx *fiber.Ctx) error {
 	var employees []models.Employees
-	result := database.DB.Find(&employees)
+	result := s.DB.Find(&employees)
 	if result.Error != nil {
 		res := models.GetApiResponse("api.server.list.error", "FAILED", result.Error.Error())
 		return ctx.Status(500).JSON(res)
@@ -29,7 +35,7 @@ func ListEmployees(ctx *fiber.Ctx) error {
 	return ctx.JSON(res)
 }
 
-func AddEmployee(ctx *fiber.Ctx) error {
+func (s *Service) AddEmployee(ctx *fiber.Ctx) error {
 	request := new(models.ApiRequest)
 	if err := ctx.BodyParser(request); err != nil {
 		fmt.Println("error: ", err)
@@ -40,7 +46,7 @@ func AddEmployee(ctx *fiber.Ctx) error {
 	if err := json.Unmarshal(request.Request, &emp); err != nil {
 		return ctx.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
-	result := database.DB.Create(&emp)
+	result := s.DB.Create(&emp)
 	if result.Error != nil {
 		res := models.GetApiResponse("api.add", "ERROR", result.Error.Error())
 		return ctx.Status(500).JSON(res)
@@ -49,10 +55,10 @@ func AddEmployee(ctx *fiber.Ctx) error {
 	return ctx.JSON(res)
 }
 
-func GetEmployee(ctx *fiber.Ctx) error {
+func (s *Service) GetEmployee(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var emp models.Employees
-	result := database.DB.First(&emp, "id = ?", id)
+	result := s.DB.First(&emp, "id = ?", id)
 	if result.Error != nil {
 		return ctx.Status(404).JSON(fiber.Map{"error": "User not found"})
 	}
@@ -60,10 +66,10 @@ func GetEmployee(ctx *fiber.Ctx) error {
 	return ctx.JSON(res)
 }
 
-func DeleteEmployee(ctx *fiber.Ctx) error {
+func (s *Service) DeleteEmployee(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var emp models.Employees
-	result := database.DB.Delete(&emp, "id = ?", id)
+	result := s.DB.Delete(&emp, "id = ?", id)
 	if result.RowsAffected == 0 {
 		return ctx.Status(404).JSON(fiber.Map{"error": "User not found"})
 	}
@@ -74,10 +80,10 @@ func DeleteEmployee(ctx *fiber.Ctx) error {
 	return ctx.JSON(res)
 }
 
-func UpdateEmployee(ctx *fiber.Ctx) error {
+func (s *Service) UpdateEmployee(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var emp models.Employees
-	result := database.DB.First(&emp, "id = ?", id)
+	result := s.DB.First(&emp, "id = ?", id)
 	if result.Error != nil {
 		return ctx.Status(404).JSON(fiber.Map{"error": "User not found"})
 	}
@@ -95,12 +101,12 @@ func UpdateEmployee(ctx *fiber.Ctx) error {
 	emp.LastName = employee.LastName
 	emp.Email = employee.Email
 	emp.Salary = employee.Salary
-	database.DB.Save(&emp)
+	s.DB.Save(&emp)
 	res := models.GetApiResponse("api.get.employee", "OK", "Record Updated Successfully")
 	return ctx.JSON(res)
 }
 
-func LoginHandler(c *fiber.Ctx) error {
+func (s *Service) LoginHandler(c *fiber.Ctx) error {
 	var req models.LoginRequest[models.Login]
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -136,7 +142,7 @@ func LoginHandler(c *fiber.Ctx) error {
 	return c.Status(resp.StatusCode).JSON(data)
 }
 
-func RefreshHandler(c *fiber.Ctx) error {
+func (s *Service) RefreshHandler(c *fiber.Ctx) error {
 	var req models.LoginRequest[models.Refresh]
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{

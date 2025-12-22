@@ -18,8 +18,8 @@ type Config struct {
 }
 
 // Load reads environment variables and returns a Config instance
-func Load() *Config {
-	// Load .env file if it exists
+func Load() (*Config, error) {
+	// Best-effort loading of .env
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system environment variables")
 	}
@@ -31,8 +31,9 @@ func Load() *Config {
 		DBPassword: getEnv("DB_PASSWORD", "postgres"),
 		DBName:     getEnv("DB_NAME", "postgres"),
 		JWKSURL:    getEnv("JWKS_URL", "http://localhost:8083/realms/employee-realm/protocol/openid-connect/certs"),
-	}
+	}, nil
 }
+
 
 // getEnv retrieves an environment variable or returns a fallback value
 func getEnv(key, fallback string) string {

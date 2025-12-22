@@ -11,6 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+
 func KeycloakAuth(jwksURL string) fiber.Handler {
 	// Load JWKS once
 	jwks, err := keyfunc.Get(jwksURL, keyfunc.Options{})

@@ -6,17 +6,28 @@ import (
 	"practise/go_fiber/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
-func SetupRouter(app *fiber.App, cfg *config.Config) {
-	api := app.Group("/api")
+type Router struct {
+	App    *fiber.App
+	Config *config.Config
+	DB     *gorm.DB
+}
 
+func NewRouter(app *fiber.App, cfg *config.Config, db *gorm.DB) *Router {
+	return &Router{App: app, Config: cfg, DB: db}
+}
+
+func (r *Router) SetupRouter() {
+	api := r.App.Group("/api")
+	service := service.NewService(r.DB)
 	// ---- PUBLIC ENDPOINTS (No Auth) ----
 	api.Post("/login", service.LoginHandler)
 	api.Post("/refresh", service.RefreshHandler)
 
 	// ---- PROTECTED ROUTES ----
-	v1 := api.Group("/v1", middlewares.KeycloakAuth(cfg.JWKSURL))
+	v1 := api.Group("/v1", middlewares.KeycloakAuth(r.Config.JWKSURL))
 
 	v1.Get("/", service.ServerStatus)
 

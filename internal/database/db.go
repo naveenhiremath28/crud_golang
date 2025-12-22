@@ -11,7 +11,7 @@ import (
 
 var DB *gorm.DB
 
-func Connect(cfg *config.Config) error {
+func Connect(cfg *config.Config) (*gorm.DB, error) {
 	var err error
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -25,8 +25,8 @@ func Connect(cfg *config.Config) error {
 	DB, err = gorm.Open(postgres.Open(connStr), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
-		return err
+		return nil, err
 	}
 	fmt.Println("Database Connected Successfully..!")
-	return nil
+	return DB, nil
 }

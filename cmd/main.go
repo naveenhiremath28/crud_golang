@@ -2,25 +2,18 @@ package main
 
 import (
 	"log"
-	"practise/go_fiber/internal/config"
-	database "practise/go_fiber/internal/database"
-	"practise/go_fiber/internal/models"
-	"practise/go_fiber/internal/routes"
-
-	"github.com/gofiber/fiber/v2"
+	"practise/go_fiber/internal/containers"
 )
 
 func main() {
-	// Load configuration
-	cfg := config.Load()
-
-	app := fiber.New()
-	err := database.Connect(cfg)
+	container, err := containers.NewContainer()
 	if err != nil {
-		log.Fatal("error while connecting to database: ", err)
+		log.Fatal(err)
 	}
-	database.DB.AutoMigrate(&models.Employees{})
-	routes.SetupRouter(app, cfg)
 
-	app.Listen(":3000")
+	
+	// Start server (blocking)
+	if err := container.Invoke(containers.StartServer); err != nil {
+		log.Fatal(err)
+	}
 }
