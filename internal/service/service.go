@@ -8,6 +8,7 @@ import (
 	"practise/go_fiber/internal/models"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -46,6 +47,10 @@ func (s *Service) AddEmployee(ctx *fiber.Ctx) error {
 	if err := json.Unmarshal(request.Request, &emp); err != nil {
 		return ctx.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
+	if emp.ID == "" {
+		emp.ID = uuid.New().String()
+	}
+	emp.VaultEntityID = emp.ID + "pii"
 	result := s.DB.Create(&emp)
 	if result.Error != nil {
 		res := models.GetApiResponse("api.add", "ERROR", result.Error.Error())
@@ -101,6 +106,7 @@ func (s *Service) UpdateEmployee(ctx *fiber.Ctx) error {
 	emp.LastName = employee.LastName
 	emp.Email = employee.Email
 	emp.Salary = employee.Salary
+	emp.VaultEntityID = emp.ID + "pii"
 	s.DB.Save(&emp)
 	res := models.GetApiResponse("api.get.employee", "OK", "Record Updated Successfully")
 	return ctx.JSON(res)

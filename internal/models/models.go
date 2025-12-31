@@ -27,14 +27,15 @@ type ApiRequest struct {
 	Params    Params          `json:"params"`
 	Request   json.RawMessage `json:"request"`
 }
-
+	
 type Employees struct {
-	ID        string  `gorm:"type:uuid;primaryKey" json:"id"`
-	FirstName string  `gorm:"size:50;not null" json:"first_name"`
-	LastName  string  `gorm:"size:50;not null" json:"last_name"`
-	Email     string  `gorm:"size:100;not null;unique" json:"email"`
-	Salary    float64 `gorm:"type:numeric(10,2)" json:"salary"`
-	Mobile    string  `gorm:"size:15;not null" json:"mobile"`
+	ID            string  `gorm:"type:uuid;primaryKey" json:"id"`
+	FirstName     string  `gorm:"size:50;not null" json:"first_name"`
+	LastName      string  `gorm:"size:50;not null" json:"last_name"`
+	Email         string  `gorm:"size:100;not null;unique" json:"email"`
+	Salary        float64 `gorm:"type:numeric(10,2)" json:"salary"`
+	Mobile        string  `gorm:"size:15;not null" json:"mobile"`
+	VaultEntityID string  `gorm:"size:100" json:"vault_entity_id"`
 }
 
 type Login struct {

@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"fmt"
 	"log"
 	"practise/go_fiber/internal/models"
 	"strings"
@@ -10,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
-
 
 func KeycloakAuth(jwksURL string) fiber.Handler {
 	// Load JWKS once
@@ -39,7 +37,6 @@ func KeycloakAuth(jwksURL string) fiber.Handler {
 
 		claims := token.Claims.(jwt.MapClaims)
 		c.Locals("user_claims", claims)
-		fmt.Println(claims)
 
 		return c.Next()
 	}
