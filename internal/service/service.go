@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"practise/go_fiber/internal/config"
 	"practise/go_fiber/internal/models"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,11 +14,12 @@ import (
 )
 
 type Service struct {
-	DB *gorm.DB
+	DB     *gorm.DB
+	Config *config.Config
 }
 
-func NewService(db *gorm.DB) *Service {
-	return &Service{DB: db}
+func NewService(db *gorm.DB, cfg *config.Config) *Service {
+	return &Service{DB: db, Config: cfg}
 }
 
 func (s *Service) ServerStatus(ctx *fiber.Ctx) error {
@@ -51,6 +53,18 @@ func (s *Service) AddEmployee(ctx *fiber.Ctx) error {
 		emp.ID = uuid.New().String()
 	}
 	emp.VaultEntityID = emp.ID + "pii"
+
+	// Encrypt Fields
+	var err error
+	emp.Email, err = s.encryptField(emp.Email, emp.VaultEntityID)
+	if err != nil {
+		return ctx.Status(500).JSON(fiber.Map{"error": "Failed to encrypt email: " + err.Error()})
+	}
+	emp.Mobile, err = s.encryptField(emp.Mobile, emp.VaultEntityID)
+	if err != nil {
+		return ctx.Status(500).JSON(fiber.Map{"error": "Failed to encrypt mobile: " + err.Error()})
+	}
+
 	result := s.DB.Create(&emp)
 	if result.Error != nil {
 		res := models.GetApiResponse("api.add", "ERROR", result.Error.Error())
@@ -67,6 +81,18 @@ func (s *Service) GetEmployee(ctx *fiber.Ctx) error {
 	if result.Error != nil {
 		return ctx.Status(404).JSON(fiber.Map{"error": "User not found"})
 	}
+
+	// Decrypt Fields
+	var err error
+	emp.Email, err = s.decryptField(emp.Email, emp.VaultEntityID)
+	if err != nil {
+		return ctx.Status(500).JSON(fiber.Map{"error": "Failed to decrypt email: " + err.Error()})
+	}
+	emp.Mobile, err = s.decryptField(emp.Mobile, emp.VaultEntityID)
+	if err != nil {
+		return ctx.Status(500).JSON(fiber.Map{"error": "Failed to decrypt mobile: " + err.Error()})
+	}
+
 	res := models.GetApiResponse("api.get.employee", "OK", emp)
 	return ctx.JSON(res)
 }
@@ -104,9 +130,27 @@ func (s *Service) UpdateEmployee(ctx *fiber.Ctx) error {
 	}
 	emp.FirstName = employee.FirstName
 	emp.LastName = employee.LastName
-	emp.Email = employee.Email
+
+	// Encrypt Fields if they are being updated
+	// Assuming employee contains the new values to update
+	encryptedEmail, err := s.encryptField(employee.Email, emp.VaultEntityID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to encrypt email"})
+	}
+	emp.Email = encryptedEmail
+
+	encryptedMobile, err := s.encryptField(employee.Mobile, emp.VaultEntityID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to encrypt mobile"})
+	}
+	emp.Mobile = encryptedMobile
+
 	emp.Salary = employee.Salary
+	// emp.VaultEntityID is already set or should be preserved. Logic above in original code was setting it again: emp.VaultEntityID = emp.ID + "pii"
+	// I will keep it consistent or rely on what's in DB unless it changes?
+	// Original code: emp.VaultEntityID = emp.ID + "pii" (Line 109)
 	emp.VaultEntityID = emp.ID + "pii"
+
 	s.DB.Save(&emp)
 	res := models.GetApiResponse("api.get.employee", "OK", "Record Updated Successfully")
 	return ctx.JSON(res)

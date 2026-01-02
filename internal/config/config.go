@@ -15,6 +15,8 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	JWKSURL    string
+	VaultURL   string
+	VaultToken string
 }
 
 // Load reads environment variables and returns a Config instance
@@ -31,9 +33,10 @@ func Load() (*Config, error) {
 		DBPassword: getEnv("DB_PASSWORD", "postgres"),
 		DBName:     getEnv("DB_NAME", "postgres"),
 		JWKSURL:    getEnv("JWKS_URL", "http://localhost:8083/realms/employee-realm/protocol/openid-connect/certs"),
+		VaultURL:   getEnv("VAULT_URL", "http://localhost:8200"),
+		VaultToken: getEnv("VAULT_TOKEN", "root"),
 	}, nil
 }
-
 
 // getEnv retrieves an environment variable or returns a fallback value
 func getEnv(key, fallback string) string {

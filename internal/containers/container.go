@@ -65,6 +65,6 @@ func StartServer(app *fiber.App, router *routes.Router) error {
 	return app.Listen(":3000")
 }
 
-func ProvideService(db *gorm.DB) *service.Service {
-	return service.NewService(db)
+func ProvideService(db *gorm.DB, cfg *config.Config) *service.Service {
+	return service.NewService(db, cfg)
 }

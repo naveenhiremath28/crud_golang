@@ -21,7 +21,7 @@ func NewRouter(app *fiber.App, cfg *config.Config, db *gorm.DB) *Router {
 
 func (r *Router) SetupRouter() {
 	api := r.App.Group("/api")
-	service := service.NewService(r.DB)
+	service := service.NewService(r.DB, r.Config)
 	// ---- PUBLIC ENDPOINTS (No Auth) ----
 	api.Post("/login", service.LoginHandler)
 	api.Post("/refresh", service.RefreshHandler)
