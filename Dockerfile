@@ -2,9 +2,11 @@ FROM golang:1.25 AS build
 
 WORKDIR /app
 COPY . .
+
 RUN go clean --modcache
 RUN go mod tidy
-RUN GOOS=linux go build -o main cmd/main.go
+RUN GOOS=linux GOARCH=amd64 go build -o main cmd/main.go
+
 
 FROM alpine:latest
 
@@ -14,4 +16,5 @@ WORKDIR /app
 COPY --from=build /app/main .
 
 EXPOSE 3000
-CMD ["go", "run", "cmd/main.go"]
+
+CMD ["./main"]
