@@ -1,0 +1,272 @@
+openapi: 3.0.3
+info:
+  title: Employee Service API
+  description: API for managing employees and authentication
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Local server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          example: admin
+      required:
+        - username
+        - password
+
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+      required:
+        - refresh_token
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        salary:
+          type: number
+        mobile:
+          type: string
+        vault_entity_id:
+          type: string
+
+    # Generic Request Wrapper Structure based on models.go
+    ApiRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "api.request"
+        ver:
+          type: string
+          example: "v1"
+        ts:
+          type: string
+          format: date-time
+        params:
+          type: object
+          properties:
+            msgid:
+              type: string
+        request:
+          type: object 
+          description: The actual payload (Employee, Login, etc.)
+
+    # Generic Response Wrapper Structure
+    ApiResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        ver:
+          type: string
+        ts:
+          type: string
+        params:
+          type: object
+          properties:
+            msgid:
+              type: string
+        responseCode:
+          type: string
+        result:
+          type: object
+
+security:
+  - bearerAuth: []
+
+paths:
+  /login:
+    post:
+      summary: User Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiRequest'
+                - type: object
+                  properties:
+                    request:
+                      $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /refresh:
+    post:
+      summary: Refresh Token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiRequest'
+                - type: object
+                  properties:
+                    request:
+                      $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /v1/:
+    get:
+      summary: Server Status
+      responses:
+        '200':
+          description: Server is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+
+  /v1/listEmployees:
+    get:
+      summary: List all employees
+      responses:
+        '200':
+          description: List of employees
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Employee'
+
+  /v1/addEmployee:
+    post:
+      summary: Add a new employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiRequest'
+                - type: object
+                  properties:
+                    request:
+                      $ref: '#/components/schemas/Employee'
+      responses:
+        '200':
+          description: Employee created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /v1/getEmployee/{id}:
+    get:
+      summary: Get employee by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Employee UUID
+      responses:
+        '200':
+          description: Employee details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/Employee'
+
+  /v1/updateEmployee/{id}:
+    patch:
+      summary: Update employee
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiRequest'
+                - type: object
+                  properties:
+                    request:
+                      $ref: '#/components/schemas/Employee'
+      responses:
+        '200':
+          description: Employee updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /v1/deleteEmployee/{id}:
+    delete:
+      summary: Delete employee
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Employee deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'

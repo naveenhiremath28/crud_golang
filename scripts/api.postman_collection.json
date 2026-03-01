@@ -1,0 +1,311 @@
+{
+	"info": {
+		"_postman_id": "7da488b3-1cb0-4af6-baaf-3598740139fd",
+		"name": "keycloak_practice",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "44863269",
+		"_collection_link": "https://go.postman.co/collection/44863269-7da488b3-1cb0-4af6-baaf-3598740139fd?source=collection_link"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Run only for successful responses",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"",
+									"    if (jsonData.access_token) {",
+									"        // Save access token",
+									"        pm.environment.set(\"access_token\", jsonData.access_token);",
+									"        console.log(jsonData.access_token)",
+									"        // (Optional) Save refresh token",
+									"        if (jsonData.refresh_token) {",
+									"            pm.environment.set(\"refresh_token\", jsonData.refresh_token);",
+									"        }",
+									"",
+									"        // (Optional) Save expiry info",
+									"        if (jsonData.expires_in) {",
+									"            pm.environment.set(\"access_token_expires_in\", jsonData.expires_in);",
+									"        }",
+									"",
+									"        console.log(\"Bearer token updated successfully\");",
+									"    } else {",
+									"        console.warn(\"access_token not found in response\");",
+									"    }",
+									"} else {",
+									"    console.error(\"Login failed, token not updated\");",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"api.request\",\n  \"ver\": \"v1\",\n  \"ts\": \"2025-12-05T10:50:00Z\",\n  \"params\": {\n    \"msgid\": \"a7ef13d9-9e43-4fbe-9e56-c05b25e2e5b1\"\n  },\n  \"request\": {\n    \"username\": \"admin\",\n    \"password\": \"admin\"\n  }\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "refresh",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"api.request\",\n  \"ver\": \"v1\",\n  \"ts\": \"2025-12-05T10:50:00Z\",\n  \"params\": {\n    \"msgid\": \"a7ef13d9-9e43-4fbe-9e56-c05b25e2e5b1\"\n  },\n  \"request\": {\n    \"refresh_token\": \"{{refresh_token}}\"\n  }\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/refresh",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Employees",
+			"item": [
+				{
+					"name": "server_status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "list_employees",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/listEmployees",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"listEmployees"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "add_employee",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"api.request\",\n  \"ver\": \"v1\",\n  \"ts\": \"2025-12-05T10:50:00Z\",\n  \"params\": {\n    \"msgid\": \"a7ef13d9-9e43-4fbe-9e56-c05b25e2e5b1\"\n  },\n  \"request\": {\n    // \"id\": \"e9d57158-9b3d-4e0f-9412-f6b1eab823a1\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email\": \"john.doe@gmail.com\",\n    \"salary\": 85000.50,\n    \"mobile\": \"+919876543210\"\n  }\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/addEmployee",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"addEmployee"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get_employee",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/getEmployee/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"getEmployee",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "e9d57158-9b3d-4e0f-9412-f6b1eab823a1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update_employee",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"api.request\",\n  \"ver\": \"v1\",\n  \"ts\": \"2025-12-05T10:50:00Z\",\n  \"params\": {\n    \"msgid\": \"a7ef13d9-9e43-4fbe-9e56-c05b25e2e5b1\"\n  },\n  \"request\": {\n    \"salary\": 90000.00\n  }\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/updateEmployee/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"updateEmployee",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "e9d57158-9b3d-4e0f-9412-f6b1eab823a1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete_employee",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/deleteEmployee/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"deleteEmployee",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "e9d57158-9b3d-4e0f-9412-f6b1eab823a1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
