@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"fmt"
 	"log"
 	"practise/go_fiber/internal/config"
 	"practise/go_fiber/internal/database"
@@ -56,13 +57,14 @@ func ProvideApp() (*fiber.App, error) {
 }
 
 func ProvideRouter(app *fiber.App, cfg *config.Config, db *gorm.DB) *routes.Router {
+	fmt.Println("\n\nconfig: ", cfg)
 	router := routes.NewRouter(app, cfg, db)
 	router.SetupRouter()
 	return router
 }
 
-func StartServer(app *fiber.App, router *routes.Router) error {
-	return app.Listen(":3000")
+func StartServer(app *fiber.App, router *routes.Router, cfg *config.Config) error {
+	return app.Listen(cfg.AppHost + ":" + cfg.AppPort)
 }
 
 func ProvideService(db *gorm.DB, cfg *config.Config) *service.Service {

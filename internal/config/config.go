@@ -17,6 +17,8 @@ type Config struct {
 	JWKSURL    string
 	VaultURL   string
 	VaultToken string
+	AppHost    string
+	AppPort    string
 }
 
 // Load reads environment variables and returns a Config instance
@@ -35,6 +37,8 @@ func Load() (*Config, error) {
 		JWKSURL:    getEnv("JWKS_URL", "http://localhost:8083/realms/employee-realm/protocol/openid-connect/certs"),
 		VaultURL:   getEnv("VAULT_URL", "http://localhost:8200"),
 		VaultToken: getEnv("VAULT_TOKEN", "root"),
+		AppHost:    getEnv("APP_HOST", "localhost"),
+		AppPort:    getEnv("APP_PORT", "8080"),
 	}, nil
 }
 

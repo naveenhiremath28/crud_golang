@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: crud-golang
+data:
+  POSTGRES_DB: "postgres"
+  POSTGRES_USER: "postgres"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_USER: "postgres"
+  DB_NAME: "postgres"
+  APP_HOST: "localhost"
+  APP_PORT: "3001"
+  JWKS_URL: "http://keycloak:8083/realms/employee_realm/protocol/openid-connect/certs"
