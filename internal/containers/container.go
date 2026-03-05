@@ -43,6 +43,7 @@ func ProvideConfig() (*config.Config, error) {
 }
 
 func ProvideDatabase(cfg *config.Config) (*gorm.DB, error) {
+	fmt.Println("\n\nconfig: ", cfg)
 	db, err := database.Connect(cfg)
 	if err != nil {
 		log.Fatal("error while connecting to database: ", err)
@@ -57,7 +58,6 @@ func ProvideApp() (*fiber.App, error) {
 }
 
 func ProvideRouter(app *fiber.App, cfg *config.Config, db *gorm.DB) *routes.Router {
-	fmt.Println("\n\nconfig: ", cfg)
 	router := routes.NewRouter(app, cfg, db)
 	router.SetupRouter()
 	return router
