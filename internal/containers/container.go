@@ -43,7 +43,18 @@ func ProvideConfig() (*config.Config, error) {
 }
 
 func ProvideDatabase(cfg *config.Config) (*gorm.DB, error) {
-	fmt.Println("\n\nconfig: ", cfg)
+	fmt.Println("\n===APP CONFIG ===\n")
+	fmt.Println("DB_HOST: ", cfg.DBHost)
+	fmt.Println("DB_PORT: ", cfg.DBPort)
+	fmt.Println("DB_USER: ", cfg.DBUser)
+	fmt.Println("DB_NAME: ", cfg.DBName)
+	fmt.Println("DB_PASSWORD: ", cfg.DBPassword)
+	fmt.Println("APP_HOST: ", cfg.AppHost)
+	fmt.Println("APP_PORT: ", cfg.AppPort)
+	fmt.Println("JWKS_URL: ", cfg.JWKSURL)
+	fmt.Println("VAULT_URL: ", cfg.VaultURL)
+	fmt.Println("VAULT_TOKEN: ", cfg.VaultToken)
+	fmt.Println("\n===APP CONFIG ===\n")
 	db, err := database.Connect(cfg)
 	if err != nil {
 		log.Fatal("error while connecting to database: ", err)
