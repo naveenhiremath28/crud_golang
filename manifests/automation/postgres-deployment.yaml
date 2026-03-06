@@ -18,20 +18,11 @@ spec:
           image: postgres:latest
           ports:
             - containerPort: 5432
-          env:
-          - name: POSTGRES_USER
-            value: postgres
-          - name: POSTGRES_PASSWORD
-            value: postgres
-          - name: POSTGRES_DB
-            value: postgres
-          - name: POSTGRES_USER
-            value: postgres
-          # envFrom:
-          #   - configMapRef:
-          #       name: app-config
-          #   - secretRef:
-          #       name: app-secret
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secret
 
       #     volumeMounts:
       #       - name: postgres-data

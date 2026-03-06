@@ -17,9 +17,23 @@ spec:
         - name: app
           image: naveenhiremath28/app-golang:1.0.0
           ports:
-            - containerPort: 3001
+            - containerPort: 3004
           envFrom:
             - configMapRef:
                 name: app-config
             - secretRef:
                 name: app-secret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: crud-golang
+spec:
+  selector:
+    app: app
+  ports:
+    - protocol: TCP
+      port: 3004
+      targetPort: 3004
