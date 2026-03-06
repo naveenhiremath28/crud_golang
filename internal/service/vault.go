@@ -28,6 +28,8 @@ func (s *Service) encryptField(payload string, vaultEntityID string) (string, er
 		return "", nil
 	}
 
+	s.Log.Debugw("Encrypting field via Vault", "vault_entity_id", vaultEntityID)
+
 	// 1. Base64 Encode
 	encodedPayload := base64.StdEncoding.EncodeToString([]byte(payload))
 
@@ -52,6 +54,7 @@ func (s *Service) encryptField(payload string, vaultEntityID string) (string, er
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		s.Log.Errorw("Vault encrypt request failed", "vault_entity_id", vaultEntityID, "error", err)
 		return "", err
 	}
 	defer resp.Body.Close()
@@ -59,6 +62,10 @@ func (s *Service) encryptField(payload string, vaultEntityID string) (string, er
 	bodyBytes, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
+		s.Log.Errorw("Vault encrypt returned non-OK status",
+			"vault_entity_id", vaultEntityID,
+			"status_code", resp.StatusCode,
+		)
 		return "", fmt.Errorf("vault encrypt failed with status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -69,6 +76,7 @@ func (s *Service) encryptField(payload string, vaultEntityID string) (string, er
 	}
 
 	if vResp.Data.Ciphertext == "" {
+		s.Log.Errorw("Vault returned empty ciphertext", "vault_entity_id", vaultEntityID)
 		return "", errors.New("vault returned empty ciphertext")
 	}
 
@@ -80,6 +88,8 @@ func (s *Service) decryptField(ciphertext string, vaultEntityID string) (string,
 		return "", nil
 	}
 
+	s.Log.Debugw("Decrypting field via Vault", "vault_entity_id", vaultEntityID)
+
 	// 1. Prepare Vault Request
 	reqBody := vaultRequest{
 		Ciphertext: ciphertext,
@@ -90,7 +100,6 @@ func (s *Service) decryptField(ciphertext string, vaultEntityID string) (string,
 	}
 
 	// 2. Call Vault Decrypt API
-	// URL: {VAULT_URL}/decrypt/{VaultEntityID}
 	url := fmt.Sprintf("%s/v1/transit/decrypt/%s", s.Config.VaultURL, vaultEntityID)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
@@ -103,6 +112,7 @@ func (s *Service) decryptField(ciphertext string, vaultEntityID string) (string,
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		s.Log.Errorw("Vault decrypt request failed", "vault_entity_id", vaultEntityID, "error", err)
 		return "", err
 	}
 	defer resp.Body.Close()
@@ -110,6 +120,10 @@ func (s *Service) decryptField(ciphertext string, vaultEntityID string) (string,
 	bodyBytes, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
+		s.Log.Errorw("Vault decrypt returned non-OK status",
+			"vault_entity_id", vaultEntityID,
+			"status_code", resp.StatusCode,
+		)
 		return "", fmt.Errorf("vault decrypt failed with status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -120,7 +134,6 @@ func (s *Service) decryptField(ciphertext string, vaultEntityID string) (string,
 	}
 
 	if vResp.Data.Plaintext == "" {
-		// Valid case? Maybe if input was empty, but we checked that.
 		return "", nil
 	}
 

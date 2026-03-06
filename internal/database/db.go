@@ -2,17 +2,14 @@ package database
 
 import (
 	"fmt"
-	"log"
 	"practise/go_fiber/internal/config"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
-
-func Connect(cfg *config.Config) (*gorm.DB, error) {
-	var err error
+func Connect(cfg *config.Config, log *zap.SugaredLogger) (*gorm.DB, error) {
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DBHost,
@@ -22,11 +19,21 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 		cfg.DBName,
 	)
 
-	DB, err = gorm.Open(postgres.Open(connStr), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		log.Errorw("Failed to connect to database",
+			"host", cfg.DBHost,
+			"port", cfg.DBPort,
+			"dbname", cfg.DBName,
+			"error", err,
+		)
 		return nil, err
 	}
-	fmt.Println("Database Connected Successfully..!")
-	return DB, nil
+
+	log.Infow("Database connected successfully",
+		"host", cfg.DBHost,
+		"port", cfg.DBPort,
+		"dbname", cfg.DBName,
+	)
+	return db, nil
 }

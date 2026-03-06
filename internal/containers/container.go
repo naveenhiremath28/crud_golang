@@ -1,16 +1,16 @@
 package containers
 
 import (
-	"fmt"
-	"log"
 	"practise/go_fiber/internal/config"
 	"practise/go_fiber/internal/database"
+	applogger "practise/go_fiber/internal/logger"
 	"practise/go_fiber/internal/models"
 	"practise/go_fiber/internal/routes"
 	"practise/go_fiber/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/dig"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -22,6 +22,7 @@ func NewContainer() (*Container, error) {
 	c := dig.New()
 
 	providers := []interface{}{
+		ProvideLogger,
 		ProvideConfig,
 		ProvideDatabase,
 		ProvideApp,
@@ -38,28 +39,32 @@ func NewContainer() (*Container, error) {
 	return &Container{Container: c}, nil
 }
 
-func ProvideConfig() (*config.Config, error) {
-	return config.Load()
+func ProvideLogger() (*zap.SugaredLogger, error) {
+	return applogger.New()
 }
 
-func ProvideDatabase(cfg *config.Config) (*gorm.DB, error) {
-	fmt.Println("\n===APP CONFIG ===\n")
-	fmt.Println("DB_HOST: ", cfg.DBHost)
-	fmt.Println("DB_PORT: ", cfg.DBPort)
-	fmt.Println("DB_USER: ", cfg.DBUser)
-	fmt.Println("DB_NAME: ", cfg.DBName)
-	fmt.Println("DB_PASSWORD: ", cfg.DBPassword)
-	fmt.Println("APP_HOST: ", cfg.AppHost)
-	fmt.Println("APP_PORT: ", cfg.AppPort)
-	fmt.Println("JWKS_URL: ", cfg.JWKSURL)
-	fmt.Println("VAULT_URL: ", cfg.VaultURL)
-	fmt.Println("VAULT_TOKEN: ", cfg.VaultToken)
-	fmt.Println("\n===APP CONFIG ===\n")
-	db, err := database.Connect(cfg)
+func ProvideConfig(log *zap.SugaredLogger) (*config.Config, error) {
+	return config.Load(log)
+}
+
+func ProvideDatabase(cfg *config.Config, log *zap.SugaredLogger) (*gorm.DB, error) {
+	log.Debugw("Application configuration",
+		"db_host", cfg.DBHost,
+		"db_port", cfg.DBPort,
+		"db_user", cfg.DBUser,
+		"db_name", cfg.DBName,
+		"app_host", cfg.AppHost,
+		"app_port", cfg.AppPort,
+		"jwks_url", cfg.JWKSURL,
+		"vault_url", cfg.VaultURL,
+	)
+
+	db, err := database.Connect(cfg, log)
 	if err != nil {
-		log.Fatal("error while connecting to database: ", err)
+		return nil, err
 	}
 	db.AutoMigrate(&models.Employees{})
+	log.Info("Database schema migration completed")
 	return db, nil
 }
 
@@ -68,16 +73,18 @@ func ProvideApp() (*fiber.App, error) {
 	return app, nil
 }
 
-func ProvideRouter(app *fiber.App, cfg *config.Config, db *gorm.DB) *routes.Router {
-	router := routes.NewRouter(app, cfg, db)
+func ProvideRouter(app *fiber.App, cfg *config.Config, db *gorm.DB, log *zap.SugaredLogger) *routes.Router {
+	router := routes.NewRouter(app, cfg, db, log)
 	router.SetupRouter()
 	return router
 }
 
-func StartServer(app *fiber.App, router *routes.Router, cfg *config.Config) error {
-	return app.Listen(cfg.AppHost + ":" + cfg.AppPort)
+func ProvideService(db *gorm.DB, cfg *config.Config, log *zap.SugaredLogger) *service.Service {
+	return service.NewService(db, cfg, log)
 }
 
-func ProvideService(db *gorm.DB, cfg *config.Config) *service.Service {
-	return service.NewService(db, cfg)
+func StartServer(app *fiber.App, router *routes.Router, cfg *config.Config, log *zap.SugaredLogger) error {
+	addr := cfg.AppHost + ":" + cfg.AppPort
+	log.Infow("Starting server", "address", addr)
+	return app.Listen(addr)
 }
