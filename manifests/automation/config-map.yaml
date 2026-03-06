@@ -12,7 +12,9 @@ data:
   DB_NAME: "postgres"
   APP_HOST: "localhost"
   APP_PORT: "3004"
-  JWKS_URL: "http://keycloak:8080/realms/employee_realm/protocol/openid-connect/certs"
+  KC_HOST: "keycloak"
+  KC_PORT: "8080"
+  KC_REALM_NAME: "employee_realm"
   KEYCLOAK_ADMIN: "admin"
   
     

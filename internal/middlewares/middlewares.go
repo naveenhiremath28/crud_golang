@@ -1,6 +1,8 @@
 package middlewares
 
 import (
+	"fmt"
+	"practise/go_fiber/internal/config"
 	"practise/go_fiber/internal/models"
 	"strings"
 
@@ -10,16 +12,17 @@ import (
 	"go.uber.org/zap"
 )
 
-func KeycloakAuth(jwksURL string, log *zap.SugaredLogger) fiber.Handler {
-	jwks, err := keyfunc.Get(jwksURL, keyfunc.Options{})
+func KeycloakAuth(log *zap.SugaredLogger, cfg *config.Config) fiber.Handler {
+	url := fmt.Sprintf("http://%s:%s/realms/%s/protocol/openid-connect/certs", cfg.KCHost, cfg.KCPort, cfg.KCRealm)
+	jwks, err := keyfunc.Get(url, keyfunc.Options{})
 	if err != nil {
 		log.Fatalw("Failed to load JWKS from Keycloak",
-			"jwks_url", jwksURL,
+			"jwks_url", url,
 			"error", err,
 		)
 	}
 
-	log.Infow("JWKS loaded successfully", "jwks_url", jwksURL)
+	log.Infow("JWKS loaded successfully", "jwks_url", url)
 
 	return func(c *fiber.Ctx) error {
 		auth := c.Get("Authorization")
@@ -33,7 +36,7 @@ func KeycloakAuth(jwksURL string, log *zap.SugaredLogger) fiber.Handler {
 
 		token, err := jwt.Parse(tokenString, jwks.Keyfunc)
 		if err != nil || !token.Valid {
-			log.Warnw("Invalid JWT token", "error", err)
+			log.Error("Invalid JWT token", "error", err)
 			res := models.GetApiResponse("api", "ERROR", err.Error())
 			return c.Status(fiber.StatusUnauthorized).JSON(res)
 		}
@@ -74,6 +77,7 @@ func RoleMiddleware(allowedRoles ...string) fiber.Handler {
 				return c.Next()
 			}
 		}
+
 
 		return c.Status(fiber.StatusForbidden).JSON(models.GetApiResponse("api", "ERROR", "Access denied: Insufficient privileges"))
 	}

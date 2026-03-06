@@ -14,11 +14,13 @@ type Config struct {
 	DBUser     string
 	DBPassword string
 	DBName     string
-	JWKSURL    string
 	VaultURL   string
 	VaultToken string
 	AppHost    string
 	AppPort    string
+	KCRealm    string
+	KCHost     string
+	KCPort     string
 }
 
 // Load reads environment variables and returns a Config instance
@@ -33,11 +35,13 @@ func Load(log *zap.SugaredLogger) (*Config, error) {
 		DBUser:     getEnv("DB_USER", "postgres"),
 		DBPassword: getEnv("DB_PASSWORD", "postgres"),
 		DBName:     getEnv("DB_NAME", "postgres"),
-		JWKSURL:    getEnv("JWKS_URL", "http://localhost:8083/realms/employee-realm/protocol/openid-connect/certs"),
 		VaultURL:   getEnv("VAULT_URL", "http://localhost:8200"),
 		VaultToken: getEnv("VAULT_TOKEN", "root"),
 		AppHost:    getEnv("APP_HOST", "localhost"),
 		AppPort:    getEnv("APP_PORT", "8080"),
+		KCRealm:    getEnv("KC_REALM", "employee-realm"),
+		KCHost:     getEnv("KC_HOST", "localhost"),
+		KCPort:     getEnv("KC_PORT", "8083"),
 	}
 
 	log.Info("Configuration loaded successfully")

@@ -55,7 +55,6 @@ func ProvideDatabase(cfg *config.Config, log *zap.SugaredLogger) (*gorm.DB, erro
 		"db_name", cfg.DBName,
 		"app_host", cfg.AppHost,
 		"app_port", cfg.AppPort,
-		"jwks_url", cfg.JWKSURL,
 		"vault_url", cfg.VaultURL,
 	)
 

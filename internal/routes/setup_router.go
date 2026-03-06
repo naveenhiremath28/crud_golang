@@ -31,7 +31,7 @@ func (r *Router) SetupRouter() {
 	r.Log.Info("Public routes registered: /api/login, /api/refresh")
 
 	// Protected routes
-	v1 := api.Group("/v1", middlewares.KeycloakAuth(r.Config.JWKSURL, r.Log))
+	v1 := api.Group("/v1", middlewares.KeycloakAuth(r.Log, r.Config))
 
 	v1.Get("/", svc.ServerStatus)
 

@@ -2,6 +2,8 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"practise/go_fiber/internal/config"
@@ -179,10 +181,44 @@ func (s *Service) UpdateEmployee(ctx *fiber.Ctx) error {
 	return ctx.JSON(res)
 }
 
+func (s *Service) callKeycloakTokenEndpoint(form url.Values) (map[string]interface{}, int, error) {
+	url := fmt.Sprintf(
+		"http://%s:%s/realms/%s/protocol/openid-connect/token",
+		s.Config.KCHost,
+		s.Config.KCPort,
+		s.Config.KCRealm,
+	)
+
+	resp, err := http.PostForm(url, form)
+	if err != nil {
+		return nil, fiber.StatusInternalServerError, fmt.Errorf("failed to reach keycloak: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fiber.StatusInternalServerError, fmt.Errorf("failed reading keycloak response: %w", err)
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, fiber.StatusInternalServerError, fmt.Errorf("failed parsing keycloak response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return data, resp.StatusCode, fmt.Errorf("keycloak returned error: %s", string(body))
+	}
+
+	return data, resp.StatusCode, nil
+}
+
 func (s *Service) LoginHandler(c *fiber.Ctx) error {
+
 	var req models.LoginRequest[models.Login]
+
 	if err := c.BodyParser(&req); err != nil {
 		s.Log.Warnw("Invalid login request body", "error", err)
+
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid request body",
 		})
@@ -194,41 +230,37 @@ func (s *Service) LoginHandler(c *fiber.Ctx) error {
 	form.Set("username", req.Request.Username)
 	form.Set("password", req.Request.Password)
 
-	resp, err := http.PostForm(
-		"http://localhost:8083/realms/employee_realm/protocol/openid-connect/token",
-		form,
-	)
+	data, status, err := s.callKeycloakTokenEndpoint(form)
+
 	if err != nil {
-		s.Log.Errorw("Failed to reach Keycloak", "error", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to reach keycloak",
-		})
-	}
-	defer resp.Body.Close()
+		s.Log.Errorw("Keycloak login failed",
+			"error", err,
+			"status", status,
+		)
 
-	var data map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		s.Log.Errorw("Failed to parse Keycloak response", "error", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to parse keycloak response",
-		})
+		return c.Status(status).JSON(data)
 	}
 
-	s.Log.Infow("Login request processed", "status", resp.StatusCode)
-	return c.Status(resp.StatusCode).JSON(data)
+	s.Log.Infow("Login successful", "status", status)
+
+	return c.Status(status).JSON(data)
 }
 
 func (s *Service) RefreshHandler(c *fiber.Ctx) error {
+
 	var req models.LoginRequest[models.Refresh]
+
 	if err := c.BodyParser(&req); err != nil {
 		s.Log.Warnw("Invalid refresh request body", "error", err)
+
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid request body",
 		})
 	}
 
 	if req.Request.RefreshToken == "" {
-		s.Log.Warn("Refresh token is missing in request")
+		s.Log.Warn("Refresh token missing")
+
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "refresh_token is required",
 		})
@@ -239,26 +271,18 @@ func (s *Service) RefreshHandler(c *fiber.Ctx) error {
 	form.Set("grant_type", "refresh_token")
 	form.Set("refresh_token", req.Request.RefreshToken)
 
-	resp, err := http.PostForm(
-		"http://localhost:8083/realms/employee_realm/protocol/openid-connect/token",
-		form,
-	)
+	data, status, err := s.callKeycloakTokenEndpoint(form)
+
 	if err != nil {
-		s.Log.Errorw("Failed to reach Keycloak for token refresh", "error", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to reach keycloak",
-		})
-	}
-	defer resp.Body.Close()
+		s.Log.Errorw("Keycloak refresh failed",
+			"error", err,
+			"status", status,
+		)
 
-	var data map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		s.Log.Errorw("Failed to parse Keycloak refresh response", "error", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to parse keycloak response",
-		})
+		return c.Status(status).JSON(data)
 	}
 
-	s.Log.Infow("Token refresh processed", "status", resp.StatusCode)
-	return c.Status(resp.StatusCode).JSON(data)
+	s.Log.Infow("Token refresh successful", "status", status)
+
+	return c.Status(status).JSON(data)
 }
