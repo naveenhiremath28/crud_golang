@@ -35,5 +35,5 @@ spec:
     app: app
   ports:
     - protocol: TCP
-      port: 3004
-      targetPort: 3004
+      port: 8000
+      targetPort: 8000
