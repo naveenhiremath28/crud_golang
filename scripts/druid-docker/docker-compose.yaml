@@ -1,0 +1,26 @@
+services:
+
+  zookeeper:
+    image: zookeeper:3.7
+    ports:
+      - "2181:2181"
+
+  postgres:
+    image: postgres:14
+    platform: linux/amd64
+    environment:
+      POSTGRES_PASSWORD: druid
+      POSTGRES_USER: druid
+      POSTGRES_DB: druid
+    ports:
+      - "5433:5432"
+
+  druid:
+    image: apache/druid:29.0.1
+    platform: linux/amd64
+    ports:
+      - "8889:8888"
+    depends_on:
+      - zookeeper
+      - postgres
+    command: /opt/druid/bin/start-nano-quickstart

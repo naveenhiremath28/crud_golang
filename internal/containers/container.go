@@ -56,6 +56,9 @@ func ProvideDatabase(cfg *config.Config, log *zap.SugaredLogger) (*gorm.DB, erro
 		"app_host", cfg.AppHost,
 		"app_port", cfg.AppPort,
 		"vault_url", cfg.VaultURL,
+		"KC_HOST", cfg.KCHost,
+		"KC_PORT", cfg.KCPort,
+		"KC_REALM_NAME", cfg.KCRealm,
 	)
 
 	db, err := database.Connect(cfg, log)
