@@ -10,6 +10,7 @@ resources:
   - postgres-deployment.yaml 
   - keycloak.yaml 
   - deployment.yaml 
+  - ingress.yaml
   
 configMapGenerator: 
   - name: keycloak-realm 
