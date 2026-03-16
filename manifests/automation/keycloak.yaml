@@ -45,6 +45,7 @@ metadata:
   name: keycloak
   namespace: crud-golang
 spec:
+  type: ClusterIP
   selector:
     app: keycloak
   ports:

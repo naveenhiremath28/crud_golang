@@ -10,7 +10,7 @@ data:
   DB_PORT: "5432"
   DB_USER: "postgres"
   DB_NAME: "postgres"
-  APP_HOST: "localhost"
+  APP_HOST: "0.0.0.0"
   APP_PORT: "8000"
   KC_HOST: "keycloak"
   KC_PORT: "8080"
