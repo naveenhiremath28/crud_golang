@@ -25,10 +25,15 @@ func (r *Router) SetupRouter() {
 	api := r.App.Group("/api")
 	svc := service.NewService(r.DB, r.Config, r.Log)
 
+	// Health check (no auth required — used by Kubernetes probes)
+	r.App.Get("/health", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{"status": "ok"})
+	})
+
 	// Public endpoints
 	api.Post("/login", svc.LoginHandler)
 	api.Post("/refresh", svc.RefreshHandler)
-	r.Log.Info("Public routes registered: /api/login, /api/refresh")
+	r.Log.Info("Public routes registered: /api/login, /api/refresh, /health")
 
 	// Protected routes
 	v1 := api.Group("/v1", middlewares.KeycloakAuth(r.Log, r.Config))
