@@ -16,24 +16,32 @@ spec:
       initContainers:
         - name: wait-for-postgres
           image: postgres:latest
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secret
           command:
             - sh
             - -c
             - |
               echo "Waiting for PostgreSQL to be ready..."
-              until pg_isready -h postgres -p 5432 -U postgres; do
+              until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do
                 echo "PostgreSQL not ready yet, retrying in 3s..."
                 sleep 3
               done
               echo "PostgreSQL is ready!"
         - name: wait-for-keycloak
           image: curlimages/curl:latest
+          envFrom:
+            - configMapRef:
+                name: app-config
           command:
             - sh
             - -c
             - |
               echo "Waiting for Keycloak to be ready..."
-              until curl -sf http://keycloak:8080/health/ready; do
+              until curl -sf http://$KC_HOST:$KC_PORT/health/ready; do
                 echo "Keycloak not ready yet, retrying in 5s..."
                 sleep 5
               done
@@ -64,6 +72,30 @@ spec:
             periodSeconds: 15
             timeoutSeconds: 3
             failureThreshold: 3
+          volumeMounts:
+            - name: app-logs
+              mountPath: /var/log/app
+
+        # Sidecar: collects logs written by the app container
+        - name: log-collector
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Log collector sidecar started. Waiting for log file..."
+              while [ ! -f /var/log/app/app.log ]; do
+                sleep 2
+              done
+              echo "Log file found. Tailing logs..."
+              tail -F /var/log/app/app.log
+          volumeMounts:
+            - name: app-logs
+              mountPath: /var/log/app
+
+      volumes:
+        - name: app-logs
+          emptyDir: {}
 
 ---
 apiVersion: v1

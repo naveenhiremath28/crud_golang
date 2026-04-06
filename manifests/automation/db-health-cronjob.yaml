@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-health-check
+  namespace: crud-golang
+spec:
+  schedule: "*/1 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 120
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: health-check
+              image: postgres:latest
+              envFrom:
+                - configMapRef:
+                    name: app-config
+                - secretRef:
+                    name: app-secret
+              command:
+                - sh
+                - -c
+                - |
+                  echo "===== DB Health Check: $(date) ====="
+
+                  # Check PostgreSQL connectivity
+                  if pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; then
+                    echo "[OK] PostgreSQL is accepting connections"
+                  else
+                    echo "[FAIL] PostgreSQL is NOT reachable"
+                    exit 1
+                  fi
+
+                  # Check employee count
+                  COUNT=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -t -c "SELECT COUNT(*) FROM employees;" 2>/dev/null | tr -d ' ')
+                  if [ $? -eq 0 ]; then
+                    echo "[OK] Employee count: $COUNT"
+                  else
+                    echo "[FAIL] Could not query employees table"
+                    exit 1
+                  fi
+
+                  # Check database size
+                  SIZE=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -t -c "SELECT pg_size_pretty(pg_database_size('$DB_NAME'));" 2>/dev/null | tr -d ' ')
+                  echo "[INFO] Database size: $SIZE"
+
+                  echo "===== Health Check Complete ====="
