@@ -1,78 +1,127 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "crud-helm.fullname" . }}
+  name: {{ include "crud-golang.fullname" . }}-app
+  namespace: {{ .Values.namespace }}
   labels:
-    {{- include "crud-helm.labels" . | nindent 4 }}
+    {{- include "crud-golang.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: {{ .Values.app.replicaCount }}
   selector:
     matchLabels:
-      {{- include "crud-helm.selectorLabels" . | nindent 6 }}
+      app: app
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        {{- include "crud-helm.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        app: app
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "crud-helm.serviceAccountName" . }}
-      {{- with .Values.podSecurityContext }}
-      securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      # ---------------------------------------------------------------
+      # Init Containers — run BEFORE the app starts, one after another
+      # Why: App needs PostgreSQL and Keycloak to be ready first
+      # ---------------------------------------------------------------
+      initContainers:
+        - name: wait-for-postgres
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          envFrom:
+            - configMapRef:
+                name: {{ include "crud-golang.fullname" . }}-config
+            - secretRef:
+                name: {{ include "crud-golang.fullname" . }}-secret
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do
+                echo "PostgreSQL not ready yet, retrying in 3s..."
+                sleep 3
+              done
+              echo "PostgreSQL is ready!"
+        - name: wait-for-keycloak
+          image: curlimages/curl:latest
+          envFrom:
+            - configMapRef:
+                name: {{ include "crud-golang.fullname" . }}-config
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Keycloak to be ready..."
+              until curl -sf http://$KC_HOST:$KC_PORT/health/ready; do
+                echo "Keycloak not ready yet, retrying in 5s..."
+                sleep 5
+              done
+              echo "Keycloak is ready!"
       containers:
-        - name: {{ .Chart.Name }}
-          {{- with .Values.securityContext }}
-          securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        # ---------------------------------------------------------------
+        # Main App Container
+        # ---------------------------------------------------------------
+        - name: app
+          image: "{{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}"
+          imagePullPolicy: {{ .Values.app.image.pullPolicy }}
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          {{- with .Values.livenessProbe }}
-          livenessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.readinessProbe }}
+            - containerPort: {{ .Values.app.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "crud-golang.fullname" . }}-config
+            - secretRef:
+                name: {{ include "crud-golang.fullname" . }}-secret
           readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.volumeMounts }}
+            httpGet:
+              path: {{ .Values.app.healthPath }}
+              port: {{ .Values.app.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.app.healthPath }}
+              port: {{ .Values.app.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.volumes }}
+            - name: app-logs
+              mountPath: /var/log/app
+        # ---------------------------------------------------------------
+        # Sidecar: Log Collector — runs alongside the app
+        # Why togglable: you may not need log collection in local dev
+        # ---------------------------------------------------------------
+        {{- if .Values.logCollector.enabled }}
+        - name: log-collector
+          image: "{{ .Values.logCollector.image.repository }}:{{ .Values.logCollector.image.tag }}"
+          command:
+            - sh
+            - -c
+            - |
+              echo "Log collector sidecar started. Waiting for log file..."
+              while [ ! -f /var/log/app/app.log ]; do
+                sleep 2
+              done
+              echo "Log file found. Tailing logs..."
+              tail -F /var/log/app/app.log
+          volumeMounts:
+            - name: app-logs
+              mountPath: /var/log/app
+        {{- end }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        - name: app-logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "crud-golang.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: app
+  ports:
+    - protocol: TCP
+      port: {{ .Values.app.port }}
+      targetPort: {{ .Values.app.port }}
