@@ -1,0 +1,77 @@
+{{/*
+  Why the `if` guard:
+  You only seed data once (e.g., in staging/dev). In production, data already exists.
+  Set dbSeed.enabled=false to skip this entirely.
+*/}}
+{{- if .Values.dbSeed.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "crud-golang.fullname" . }}-db-seed
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "crud-golang.labels" . | nindent 4 }}
+spec:
+  ttlSecondsAfterFinished: {{ .Values.dbSeed.ttlSecondsAfterFinished }}
+  backoffLimit: {{ .Values.dbSeed.backoffLimit }}
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-postgres
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          envFrom:
+            - configMapRef:
+                name: {{ include "crud-golang.fullname" . }}-config
+            - secretRef:
+                name: {{ include "crud-golang.fullname" . }}-secret
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do
+                echo "PostgreSQL not ready yet, retrying in 3s..."
+                sleep 3
+              done
+              echo "PostgreSQL is ready!"
+        - name: wait-for-app
+          image: curlimages/curl:latest
+          envFrom:
+            - configMapRef:
+                name: {{ include "crud-golang.fullname" . }}-config
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for app to be ready (creates tables via auto-migration)..."
+              until curl -sf http://app:$APP_PORT/health; do
+                echo "App not ready yet, retrying in 5s..."
+                sleep 5
+              done
+              echo "App is ready, tables should exist!"
+      containers:
+        - name: seed
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          envFrom:
+            - configMapRef:
+                name: {{ include "crud-golang.fullname" . }}-config
+            - secretRef:
+                name: {{ include "crud-golang.fullname" . }}-secret
+          command:
+            - sh
+            - -c
+            - |
+              echo $DB_PASSWORD
+              echo "Seeding database with sample employees..."
+              PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME <<'SQL'
+              INSERT INTO employees (id, first_name, last_name, email, salary, mobile)
+              VALUES
+                (gen_random_uuid(), 'John', 'Doe', 'john.doe@example.com', 85000.00, '9876543210'),
+                (gen_random_uuid(), 'Jane', 'Smith', 'jane.smith@example.com', 95000.00, '9876543211'),
+                (gen_random_uuid(), 'Bob', 'Wilson', 'bob.wilson@example.com', 110000.00, '9876543212')
+              ON CONFLICT DO NOTHING;
+              SQL
+              echo "Database seeding complete!"
+              PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "SELECT id, first_name, last_name, email, salary FROM employees;"
+{{- end }}

@@ -1,43 +1,34 @@
+{{/*
+  Why the `if` guard:
+  Not every environment needs an Ingress. In local dev with port-forward,
+  you'd set ingress.enabled=false in values.yaml to skip this entirely.
+*/}}
 {{- if .Values.ingress.enabled -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "crud-helm.fullname" . }}
+  name: {{ include "crud-golang.fullname" . }}-ingress
+  namespace: {{ .Values.namespace }}
   labels:
-    {{- include "crud-helm.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- include "crud-golang.labels" . | nindent 4 }}
 spec:
-  {{- with .Values.ingress.className }}
-  ingressClassName: {{ . }}
-  {{- end }}
-  {{- if .Values.ingress.tls }}
-  tls:
-    {{- range .Values.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
-  {{- end }}
+  ingressClassName: {{ .Values.ingress.className }}
   rules:
-    {{- range .Values.ingress.hosts }}
-    - host: {{ .host | quote }}
+    - host: {{ .Values.ingress.host }}
       http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            {{- with .pathType }}
-            pathType: {{ . }}
-            {{- end }}
+          - path: /v1
+            pathType: Prefix
             backend:
               service:
-                name: {{ include "crud-helm.fullname" $ }}
+                name: app
                 port:
-                  number: {{ $.Values.service.port }}
-          {{- end }}
-    {{- end }}
+                  number: {{ .Values.app.port }}
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: {{ .Values.keycloak.port }}
 {{- end }}
