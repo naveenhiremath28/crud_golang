@@ -1,0 +1,18 @@
+{{/*
+  Why template the ConfigMap:
+  Different environments need different values (e.g., DB_HOST might be
+  "postgres" locally but "prod-db.internal" in production).
+  The `range` loop auto-generates all key-value pairs from values.yaml,
+  so adding a new env var is just one line in values.yaml — no template change needed.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "crud-golang.fullname" . }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "crud-golang.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.config }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}

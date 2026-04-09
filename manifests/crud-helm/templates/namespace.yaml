@@ -1,0 +1,11 @@
+{{/*
+  Why template the namespace:
+  Your raw YAML hardcodes "crud-golang". With Helm, you can deploy to
+  any namespace: helm install myapp ./crud-helm --set namespace=staging
+*/}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    {{- include "crud-golang.labels" . | nindent 4 }}
