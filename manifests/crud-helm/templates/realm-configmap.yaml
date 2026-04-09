@@ -1,0 +1,23 @@
+{{/*
+  Creates a ConfigMap from JSON files in the realms/ folder.
+
+  How it works:
+  - .Files.Glob "realms/*.json" scans the chart's realms/ directory
+  - For each JSON file found, it adds it as a key in the ConfigMap
+  - base $path extracts just the filename (e.g., "realm-export.json")
+  - .Files.Get reads the file contents
+
+  To add more realms, just drop more .json files into realms/ folder.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "crud-golang.labels" . | nindent 4 }}
+data:
+  {{- range $path, $_ := .Files.Glob "realms/*.json" }}
+  {{ base $path }}: |-
+    {{- $.Files.Get $path | nindent 4 }}
+  {{- end }}
